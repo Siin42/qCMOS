@@ -50,21 +50,22 @@ def average_pixel_values(file_names, value_max, save=False):
     # 显示图表
     plt.show()
 
-def grouping_intensity_values(image_array, value_max):
-    freq_array, bins = np.histogram(image_array, bins=value_max, range=(0, value_max))
-    return bins, freq_array
+def grouping_intensity_values(image_array, bin_width=1):
+    # 1. image_array is a list of zero or positive integers. 
+    # 2. returns will be a list from 0 to the max of image_array, and another list of how many elements having the value in the first list respectively. 
+    # 3. returns should be ready for a bar plot. 
+    max_value = np.max(image_array)
 
-def grouping_intensity_values(image_array, value_max):
-    # 计算每个区间的元素数量
-    pixels, bins = np.histogram(image_array, bins=500, range=(0, value_max))
+    pixels, bins = np.histogram(image_array, bins=int(max_value+1), range=(0, max_value))
     bins = bins[:-1]
 
     return bins, pixels
 
-def total_pixel_values(tiff_path, value_max, save=False):
+def total_pixel_values(tiff_path, plot_type, save=False):
 
     # 定义pickle文件的名字
-    pickle_file = 'img_data.pkl'
+    # pickle_file = 'img_data.pkl'
+
     tiff_filenames = get_tiff_list(tiff_path)
 
     start_time = time.time()
@@ -83,8 +84,8 @@ def total_pixel_values(tiff_path, value_max, save=False):
     #         pickle.dump(img_arrays, f)
     #     print('Data saved to pickle file')
 
-    # region read tags from img_first
-    img_first = imread(f'{tiff_path}\\{tiff_filenames[0]}')
+    # region get tags from img_first
+    img_first = Image.open(f'{tiff_path}\\{tiff_filenames[0]}')
     image_arrays = np.zeros_like(img_first, dtype=np.float64)
 
     # tag 270 Image description
@@ -110,10 +111,6 @@ def total_pixel_values(tiff_path, value_max, save=False):
     image_dimension = str(img_first.tag_v2.get(256)) + "x" + str(img_first.tag_v2.get(257))
     if debug==True:
         print(f"Dimension: {image_dimension}")
-
-    end_time = time.time()
-    if debug==True:
-        print(f"File reading time: {end_time - start_time} seconds")
     # endregion
 
     for file_name in tiff_filenames:
@@ -122,41 +119,57 @@ def total_pixel_values(tiff_path, value_max, save=False):
             img = Image.open(f'{tiff_path}\\{file_name}')
             img_array = np.array(img)
             image_arrays += img_array
+
+    if debug==True:
+        frames = len(tiff_filenames)
+        print('exposures:', frames)
     if debug==True:
         print('Dimension of image_arrays:', image_arrays.shape)
+        print('Maximum value of image_arrays:', np.max(image_arrays))
 
-    image_arrays = image_arrays.flatten()
-    # Normalizing the image arrays
-    total_freq_arrays_normalized = image_arrays / np.max(image_arrays)
+    end_time = time.time()
+    if debug==True:
+        print(f"File reading time: {end_time - start_time} seconds")
 
-    # 设置图表的大小
-    fig = plt.figure(figsize=(10, 6))
+    
+    if plot_type == 'imshow':
+        fig = plt.figure(figsize=(10, 6))
+        plt.imshow(image_arrays, cmap='hot', interpolation='nearest')
+        plt.colorbar(label='Pixel Value (Sum)')
+        fig.text(0.5, 0.01, f'Exposure time: {exposure_time_ms} ms, Bit rate: {bit_rate[0]} bits, Dimension: {image_dimension}, frames: {len(tiff_filenames)}', ha='center') # Add caption to the figure
+        if save==True:
+            plt.savefig('total_pixel_cmap.png')
+        plt.show()
+    elif plot_type == 'hist':
+        bins, freq_array = grouping_intensity_values(image_arrays, bin_width=int(0.1*frames))
 
-    # 创建直方图
-    bars = plt.bar(range(value_max), total_freq_arrays_normalized, color='gray', alpha=0.7)
-    # bars = plt.bar(range(value_max), total_freq_array, color='gray', alpha=0.7)
+        # Normalizing the frequency array
+        freq_arrays_normalized = freq_array / np.max(freq_array)
 
-    xticks = np.arange(0, int(value_max)) # 生成一个从x轴的最小值到最大值的整数序列
-    plt.xticks(xticks) # 设置x轴的刻度
-    plt.yscale('log') # 将y轴标签改为对数值
+        # 设置图表的大小
+        fig = plt.figure(figsize=(10, 6))
+        bars = plt.bar(bins, freq_arrays_normalized, color='gray', alpha=0.7)
 
-    # # 在每个柱子上方添加一个文本标签
-    # for bar in bars:
-    #     height = bar.get_height()
-    #     plt.text(bar.get_x() + bar.get_width() / 2, height, 
-    #             f'{height:.1f}', ha='center', va='bottom')
+        # xticks = np.arange(0, int(value_max)) # 生成一个从x轴的最小值到最大值的整数序列
+        # plt.xticks(xticks) # 设置x轴的刻度
+        plt.yscale('log') # 将y轴标签改为对数值
 
-    # plt.title(f'Histogram of Total Counts v.s. Amount of Pixels after {len(freq_arrays)} exposures')
-    plt.xlabel('Counts')
-    plt.ylabel('Frequency (normalized)')
-    fig.text(0.5, 0.01, f'Exposure time: {exposure_time_ms} ms, Bit rate: {bit_rate[0]} bits, Dimension: {image_dimension}, frames: {len(tiff_filenames)}', ha='center') # Add caption to the figure
+        # # 在每个柱子上方添加一个文本标签
+        # for bar in bars:
+        #     height = bar.get_height()
+        #     plt.text(bar.get_x() + bar.get_width() / 2, height, 
+        #             f'{height:.1f}', ha='center', va='bottom')
 
+        # plt.title(f'Histogram of Total Counts v.s. Amount of Pixels after {len(freq_arrays)} exposures')
+        plt.xlabel('Counts')
+        plt.ylabel('Frequency (normalized)')
+        fig.text(0.5, 0.01, f'Exposure time: {exposure_time_ms} ms, Bit rate: {bit_rate[0]} bits, Dimension: {image_dimension}, frames: {len(tiff_filenames)}', ha='center') # Add caption to the figure
 
-    if save==True:
-        plt.savefig('total_pixel_values.png')
+        if save==True:
+            plt.savefig('total_pixel_values.png')
 
-    # 显示图表
-    plt.show()
+        # 显示图表
+        plt.show()
 
 def pixel_fluctuation(file_names, value_range, save=False):
     img_arrays = []
@@ -261,7 +274,7 @@ tiff_path = 'W:\\Quant_Opt_Group\\Group\\Zhengyin_public\\LABDATA\\3.12 qCMOS\\d
 def main():
     # average_pixel_values(tiff_files, 22, save=False)
     # pixel_fluctuation(tiff_files, (0, 6), save=False)
-    total_pixel_values(tiff_path, 21, save=True)
+    total_pixel_values(tiff_path, 'imshow', save=True)
 
 if __name__ == '__main__':
     main()
