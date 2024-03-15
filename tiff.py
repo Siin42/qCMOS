@@ -8,6 +8,10 @@ import re
 import pickle
 from tifffile import imread
 
+# TODO
+# 1. use imread to read tiff files
+# 2. try pickle
+
 def grouping_intensity_values(image_array, bin_width=1):
     # 1. image_array is a list of zero or positive integers. 
     # 2. returns will be a list from 0 to the max of image_array, and another list of how many elements having the value in the first list respectively. 
@@ -75,26 +79,35 @@ def total_pixel_values(tiff_path, plot_type,  save=False):
     if debug==True:
         print(f"Dimension: {image_dimension}")
     # endregion
-
-    for file_name in tiff_filenames:
-        # 只处理tif文件
-        if file_name.endswith('.tif'):
-            img = Image.open(f'{tiff_path}\\{file_name}')
-            img_array = np.array(img)
-            image_arrays += img_array
+        
+    if reader=='PIL':
+        # File reading time: 893.8105647563934 seconds
+        for file_name in tiff_filenames:
+            # 只处理tif文件
+            if file_name.endswith('.tif'):
+                img = Image.open(f'{tiff_path}\\{file_name}')
+                img_array = np.array(img)
+                image_arrays += img_array
+        print('With PIL')
+    elif reader=='tifffile':
+        # File reading time: 194.37059926986694 seconds
+        for file_name in tiff_filenames:
+            if file_name.endswith('.tif'):
+                img_array = imread(f'{tiff_path}\\{file_name}')
+                image_arrays += img_array
+        print('With tifffile')
 
     if debug==True:
         frames = len(tiff_filenames)
         print('exposures:', frames)
     if debug==True:
-        print('Dimension of image_arrays:', image_arrays.shape)
         print('Maximum value of image_arrays:', np.max(image_arrays))
 
     end_time = time.time()
     if debug==True:
         print(f"File reading time: {end_time - start_time} seconds")
 
-    
+
     if plot_type == 'heat':
         fig = plt.figure(figsize=(10, 6))
         plt.imshow(image_arrays, cmap='hot', interpolation='nearest')
@@ -103,29 +116,24 @@ def total_pixel_values(tiff_path, plot_type,  save=False):
         if save==True:
             plt.savefig('total_pixel_cmap.png')
         plt.show()
-    elif plot_type == 'hist':
-        bins, freq_array = grouping_intensity_values(image_arrays, bin_width=int(0.1*frames))
+
+    elif plot_type == 'bar':
+        bins = max(int(0.1*frames), 20) # Set bins amount. if bins is less than 20, set it to there
+        counts, bin_edges = np.histogram(image_arrays.flatten(), bins=bins)
+
+        counts_normalized = counts / counts.max()
+
+        fig = plt.figure(figsize=(10, 6))
+        plt.bar(bin_edges[:-1], counts_normalized, width=np.diff(bin_edges), color='gray', log=True, align='edge')
 
         if debug==True:
-            print('bins:', bins)
-            print('freq_array:', freq_array)
+            print('bins:', bin_edges[:-1])
+            print('freq_array:', counts_normalized)
 
-        # 确保bins和频率数组的长度相同
-        assert len(bins) == len(freq_array), 'The lengths of bins and freq_array are not the same.'
-
-        # 确保频率数组中的值不全为0
-        assert np.max(freq_array) > 0, 'The values in freq_array are all zero.'
-
-        # Normalizing the frequency array
-        freq_arrays_normalized = freq_array / np.max(freq_array)
-
-        # 设置图表的大小
-        fig = plt.figure(figsize=(10, 6))
-        bars = plt.bar(bins, freq_arrays_normalized, color='gray')
+        # bars = plt.bar(bins, freq_arrays_normalized, color='gray')
 
         # xticks = np.arange(0, int(value_max)) # 生成一个从x轴的最小值到最大值的整数序列
         # plt.xticks(xticks) # 设置x轴的刻度
-        plt.yscale('log') # 将y轴标签改为对数值
 
         # # 在每个柱子上方添加一个文本标签
         # for bar in bars:
@@ -144,6 +152,26 @@ def total_pixel_values(tiff_path, plot_type,  save=False):
         # 显示图表
         plt.show()
 
+    elif plot_type=="hist":
+        if debug==True:
+            print('Minimum non-zero value of image_arrays:', np.min(image_arrays[image_arrays > 0]))# 使用plt.hist()函数绘制直方图
+
+        fig = plt.figure(figsize=(10, 6))
+        bins = max(int(0.1*frames), 20) # Set bins amount. if bins is less than 20, set it to there
+        if debug==True:
+            print('amount of bins:', bins)
+        hist = plt.hist(image_arrays.flatten(), bins=bins, color='gray', log=True)
+        if debug==True:
+            print('hist:', hist)
+
+        plt.xlabel('Counts')
+        plt.ylabel('Frequency')
+        fig.text(0.5, 0.01, f'Exposure time: {exposure_time_ms} ms, Bit rate: {bit_rate[0]} bits, Dimension: {image_dimension}, frames: {len(tiff_filenames)}', ha='center') # Add caption to the figure
+        if save==True:
+            plt.savefig('total_pixel_values.png')
+        # 显示图表
+        plt.show()
+
 def read_image(file_name):
     img = Image.open(f'{tiff_path}\\{file_name}')
     img_array = np.array(img)
@@ -155,11 +183,13 @@ def get_tiff_list(tiff_path):
     return tiff_files
 
 debug = True
-# tiff_path = 'W:\\Quant_Opt_Group\\Group\\Zhengyin_public\\LABDATA\\3.12 qCMOS\\data' + '\\3056x124'
-tiff_path = 'W:\\Quant_Opt_Group\\Group\\Zhengyin_public\\LABDATA\\3.12 qCMOS\\data' + '\\1024x1024_quick'
+tiff_path = 'W:\\Quant_Opt_Group\\Group\\Zhengyin_public\\LABDATA\\3.12 qCMOS\\data' + '\\3056x124'
+# tiff_path = 'W:\\Quant_Opt_Group\\Group\\Zhengyin_public\\LABDATA\\3.12 qCMOS\\data' + '\\1024x1024_quick'
+reader = 'tifffile'
+# reader = 'PIL'
 
 def main():
-    total_pixel_values(tiff_path, 'hist', save=False)
+    total_pixel_values(tiff_path, 'bar', save=False)
 
 if __name__ == '__main__':
     main()
