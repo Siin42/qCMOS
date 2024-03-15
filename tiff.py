@@ -81,7 +81,7 @@ def total_pixel_values(tiff_path, plot_type,  save=False):
     # endregion
         
     if reader=='PIL':
-        # File reading time: 893.8105647563934 seconds
+        # File reading time: 658.416844367981 seconds
         for file_name in tiff_filenames:
             # 只处理tif文件
             if file_name.endswith('.tif'):
@@ -90,7 +90,7 @@ def total_pixel_values(tiff_path, plot_type,  save=False):
                 image_arrays += img_array
         print('With PIL')
     elif reader=='tifffile':
-        # File reading time: 194.37059926986694 seconds
+        # File reading time: 766.2443685531616 seconds
         for file_name in tiff_filenames:
             if file_name.endswith('.tif'):
                 img_array = imread(f'{tiff_path}\\{file_name}')
@@ -122,13 +122,16 @@ def total_pixel_values(tiff_path, plot_type,  save=False):
         counts, bin_edges = np.histogram(image_arrays.flatten(), bins=bins)
 
         counts_normalized = counts / counts.max()
+        if debug==True:
+            print('Mininum in counts_normalized:', np.min(counts_normalized))
 
         fig = plt.figure(figsize=(10, 6))
         plt.bar(bin_edges[:-1], counts_normalized, width=np.diff(bin_edges), color='gray', log=True, align='edge')
 
         if debug==True:
-            print('bins:', bin_edges[:-1])
-            print('freq_array:', counts_normalized)
+            # print('bins:', bin_edges[:-1])
+            # print('freq_array:', counts_normalized)
+            print('bins width:', np.average(np.diff(bin_edges)))
 
         # bars = plt.bar(bins, freq_arrays_normalized, color='gray')
 
