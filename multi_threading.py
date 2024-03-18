@@ -1,8 +1,12 @@
 from scipy.sparse import csr_matrix
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from PIL import Image
 import numpy as np
 import os
+from scipy.sparse import csr_matrix
+from functools import reduce
+import numpy as np
+from operator import add
 
 from utils import get_tiff_list
 
@@ -26,3 +30,36 @@ def Threading_read_images(file_path):
     image_arrays = [future.result() for future in futures]
 
     return image_arrays
+
+
+
+def exponentiate_RMS(img, exponent):
+    return img.power(exponent)
+
+def parallel_exponentiate_RMS(image_arrays, exponent):
+    with ProcessPoolExecutor() as executor:
+        exponentiation = list(executor.map(exponentiate_RMS, image_arrays, [exponent]*len(image_arrays)))
+
+    return exponentiation
+
+
+
+
+def sum_sublist(sublist):
+    return reduce(add, sublist)
+
+def parallel_sum(image_arrays):
+    # Get the number of CPU cores
+    num_splits = os.cpu_count()
+
+    # Split the list into sublists
+    sublists = np.array_split(image_arrays, num_splits)
+
+    # Use a ProcessPoolExecutor to compute the sum of each sublist in parallel
+    with ProcessPoolExecutor() as executor:
+        sublist_sums = list(executor.map(sum_sublist, sublists))
+
+    # Compute the final sum
+    total_sum = reduce(add, sublist_sums)
+
+    return total_sum

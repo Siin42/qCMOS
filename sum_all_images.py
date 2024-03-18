@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # %%
 import os
 import numpy as np
@@ -6,121 +7,38 @@ import matplotlib.pyplot as plt
 import time
 import re
 import pickle
-from tifffile import imread
-from scipy.sparse import csr_matrix
-from concurrent.futures import ThreadPoolExecutor
+# from tifffile import imread
+# from scipy.sparse import csr_matrix
+# from concurrent.futures import ThreadPoolExecutor
 
 from utils import get_def_name, get_tags_from_first_tiff, get_tiff_list
+from multi_threading import Threading_read_images
 
-
-
-# TODO
-# 1. use imread to read tiff files
-# 2. try pickle
-
-# %%
-# not being used
-# def grouping_intensity_values(image_array, bin_width=1):
-#     # 1. image_array is a list of zero or positive integers. 
-#     # 2. returns will be a list from 0 to the max of image_array, and another list of how many elements having the value in the first list respectively. 
-#     # 3. returns should be ready for a bar plot. 
-#     max_value = np.max(image_array)
-
-#     bins = np.arange(0, max_value + bin_width, bin_width)
-#     pixels, _ = np.histogram(image_array, bins=bins)
-#     bins = bins[:-1]
-
-#     if debug==True:
-#         print('bins:', bins)
-#         print('pixels:', pixels)
-
-#     return bins, pixels
-
-# %%
-# def get_tiff_list(tiff_path):
-#     file_names = os.listdir(tiff_path)
-#     tiff_files = [f for f in file_names if f.lower().endswith('.tif') or f.lower().endswith('.tiff')]
-#     return tiff_files
-
-# %%
-# def read_image(file_path):
-#     img = Image.open(file_path)
-#     img_array = np.array(img)
-#     return csr_matrix(img_array)
-
-# def worker(file_path):
-#     # 你的函数
-#     return read_image(file_path)
-
-# def Threading_read_images(file_path):
-#     tiff_filenames = get_tiff_list(file_path)
-#     tiff_addresses = [os.path.join(file_path, fn) for fn in tiff_filenames]
-
-#     # max_workers should be a bit bigger than the number of threads for I/O intensive tasks
-#     with ThreadPoolExecutor(max_workers=60) as executor:
-#         futures = [executor.submit(worker, addr) for addr in tiff_addresses]
-#     image_arrays = [future.result() for future in futures]
-
-#     return image_arrays
 
 # %%
 def read_all_images(tiff_path, **kwargs):
-    use_pickle = kwargs.get('use_pickle', True)
-    reader = kwargs.get('reader', 'PIL')
+    debugging = kwargs.get('debugging', True)
+    pickle_usage = kwargs.get('pickle_usage', True)
 
-    # img = Image.open(f'{tiff_path}\\{file_name}')
-    # img_array = np.array(img)
-
-    tiff_filenames = get_tiff_list(tiff_path)
     image_arrays = []
+    start_time = time.time()
+    if debugging==True and pickle_usage==False:
+        print('NOT USING PICKLE')
     
-    # check if pickle file image_arrays.pkl exists in the tiff_path
-    # if yes, load it
-    # if not, read tiff files and save it as pickle file
-    if os.path.exists(f'{tiff_path}\\image_arrays.pkl') and use_pickle==True:
+    if os.path.exists(f'{tiff_path}\\image_arrays.pkl') and pickle_usage==True:
         with open(f'{tiff_path}\\image_arrays.pkl', 'rb') as f:
             image_arrays = pickle.load(f)
         print(f'{tiff_path}\nLoaded image_arrays.pkl')
-
     else:
-        start_time = time.time()
-        if reader=='PIL':
-            # img_first = Image.open(f'{tiff_path}\\{tiff_filenames[0]}')
-            # image_arrays = np.zeros_like(img_first, dtype=np.float64)
+        image_arrays = Threading_read_images(tiff_path)
 
-            # File reading time: 658.416844367981 seconds
-            # for file_name in tiff_filenames:
-            #     # 只处理tif文件
-            #     if file_name.endswith('.tif'):
-            #         img = Image.open(f'{tiff_path}\\{file_name}')
-            #         img_array = np.array(img)
-            #         if sparse==True:
-            #             img_array = csr_matrix(img_array)
-            #         image_arrays.append(img_array)
+        if pickle_usage==True:
+            with open(f'{tiff_path}\\image_arrays.pkl', 'wb') as f:
+                pickle.dump(image_arrays, f)
 
-            image_arrays = Threading_read_images(tiff_path)
-            print('With PIL')
-
-            if use_pickle==True:
-                with open(f'{tiff_path}\\image_arrays.pkl', 'wb') as f:
-                    pickle.dump(image_arrays, f)
-
-        elif reader=='tifffile':
-        #     # img_first = imread(f'{tiff_path}\\{tiff_filenames[0]}')
-        #     # image_arrays = np.zeros_like(img_first, dtype=np.float64)
-
-        #     # File reading time: 766.2443685531616 seconds
-        #     for file_name in tiff_filenames:
-        #         if file_name.endswith('.tif'):
-        #             img_array = imread(f'{tiff_path}\\{file_name}')
-        #             image_arrays.append(img_array)
-            print('With tifffile')
-
-        end_time = time.time()
-        print(f'File reading time: {end_time - start_time} seconds')
-
-    if debug==True:
-        print('sparse True')
+    end_time = time.time()
+    if debugging==True:
+        print(f'File reading time: {end_time - start_time:.1f} seconds. With {get_def_name()}')
 
     
     return image_arrays
@@ -129,8 +47,6 @@ def read_all_images(tiff_path, **kwargs):
 # ##### Testing block for cProfile
 
 # %%
-example_tiff =  'C:\\3.12 qCMOS\\full frame\\Background001.tif'
-
 import cProfile
 
 def profile_read_image(file_path):
@@ -154,6 +70,7 @@ def to_call_with_cProfile(**args):
     return result
 
 # 使用你的文件路径调用函数
+# example_tiff =  'C:\\3.12 qCMOS\\full frame\\Background001.tif'
 # profile_read_image(example_tiff)
 
 # %% [markdown]
@@ -161,12 +78,15 @@ def to_call_with_cProfile(**args):
 
 # %%
 def sum_all_images(tiff_path, **kwargs):
+    debugging = kwargs.get('debugging', False)
+    pickle_usage = kwargs.get('pickle_usage', True)
 
-    use_pickle = kwargs.get('use_pickle', True)
-
-    image_arrays = read_all_images(tiff_path, use_pickle=use_pickle)
+    image_arrays = read_all_images(tiff_path, **kwargs)
+    start_time = time.time()
+    if debugging==True and pickle_usage==False:
+        print('NOT USING PICKLE')
     
-    if os.path.exists(f'{tiff_path}\\sum_image_arrays.pkl') and use_pickle==True:
+    if os.path.exists(f'{tiff_path}\\sum_image_arrays.pkl') and pickle_usage==True:
         with open(f'{tiff_path}\\sum_image_arrays.pkl', 'rb') as f:
             sum_image = pickle.load(f)
         print('Loaded sum_image_arrays.pkl')
@@ -176,7 +96,7 @@ def sum_all_images(tiff_path, **kwargs):
         for img in image_arrays:
             sum_image += img
 
-        if use_pickle==True:
+        if pickle_usage==True:
             with open(f'{tiff_path}\\sum_image_arrays.pkl', 'wb') as f:
                 pickle.dump(sum_image, f)
         
