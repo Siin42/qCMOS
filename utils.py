@@ -23,7 +23,7 @@ def get_tags_from_first_tiff(tiff_path):
     match = re.search(r'Prop_ExposureTime2=([\d.]+)', tag_content)
     if match:
         exposure_time_str = match.group(1)
-        exposure_time_ms = np.floor(float(exposure_time_str) * 1000).astype(int)
+        exposure_time_ms = np.round(float(exposure_time_str) * 1000, 0).astype(int)
     else:
         print("Exposure time not found in tag 270")
 

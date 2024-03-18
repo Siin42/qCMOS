@@ -13,7 +13,7 @@ def read_image(file_path):
     return csr_matrix(img_array)
 
 def worker(file_path):
-    # 你的函数
+    # Your function
     return read_image(file_path)
 
 def Threading_read_images(file_path):

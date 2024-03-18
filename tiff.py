@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# %%
 import os
 import numpy as np
 from PIL import Image
@@ -8,10 +10,12 @@ import re
 import pickle
 from tifffile import imread
 
+# %% [markdown]
 # TODO
 # 1. use imread to read tiff files
 # 2. try pickle
 
+# %%
 def grouping_intensity_values(image_array, bin_width=1):
     # 1. image_array is a list of zero or positive integers. 
     # 2. returns will be a list from 0 to the max of image_array, and another list of how many elements having the value in the first list respectively. 
@@ -22,12 +26,14 @@ def grouping_intensity_values(image_array, bin_width=1):
     pixels, _ = np.histogram(image_array, bins=bins)
     bins = bins[:-1]
 
+    #
     if debug==True:
         print('bins:', bins)
         print('pixels:', pixels)
 
     return bins, pixels
 
+# %%
 def total_pixel_values(tiff_path, plot_type,  save=False):
 
     # 定义pickle文件的名字
@@ -175,24 +181,29 @@ def total_pixel_values(tiff_path, plot_type,  save=False):
         # 显示图表
         plt.show()
 
+# %%
 def read_image(file_name):
     img = Image.open(f'{tiff_path}\\{file_name}')
     img_array = np.array(img)
     return img_array
 
+# %%
 def get_tiff_list(tiff_path):
     file_names = os.listdir(tiff_path)
     tiff_files = [f for f in file_names if f.lower().endswith('.tif') or f.lower().endswith('.tiff')]
     return tiff_files
 
+# %%
 debug = True
 tiff_path = 'W:\\Quant_Opt_Group\\Group\\Zhengyin_public\\LABDATA\\3.12 qCMOS\\data' + '\\3056x124'
 # tiff_path = 'W:\\Quant_Opt_Group\\Group\\Zhengyin_public\\LABDATA\\3.12 qCMOS\\data' + '\\1024x1024_quick'
 reader = 'tifffile'
 # reader = 'PIL'
 
+# %%
 def main():
     total_pixel_values(tiff_path, 'bar', save=False)
 
+# %%
 if __name__ == '__main__':
     main()
