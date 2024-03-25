@@ -20,8 +20,13 @@ def worker(file_path):
     # Your function
     return read_image(file_path)
 
-def Threading_read_images(file_path):
+# def Threading_read_images(file_path):
+def Threading_read_images(file_path, tiff_amount_cutoff=None):
     tiff_filenames = get_tiff_list(file_path)
+    if tiff_amount_cutoff is not None:
+        if len(tiff_filenames) < tiff_amount_cutoff:
+            raise ValueError(f"Insufficient tiff files. Expected at least {tiff_amount_cutoff}, but got {len(tiff_filenames)}")
+        tiff_filenames = tiff_filenames[:tiff_amount_cutoff]
     tiff_addresses = [os.path.join(file_path, fn) for fn in tiff_filenames]
 
     # max_workers should be a bit bigger than the number of threads for I/O intensive tasks
