@@ -3,13 +3,35 @@ import os
 from PIL import Image
 import re
 import numpy as np
+import time
+# import pickle
+# from multi_threading import Threading_read_images
 
+
+
+def timer_decorator(func):
+
+    def wrapper(*args, **kwargs):
+
+        debugging = kwargs.get('debugging', True)
+
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        if debugging==True:
+            print(f"Function   {func.__name__}()   took {end_time - start_time:.1f} seconds to run.")
+        
+        # if debugging==True:
+            # print(f'File reading time: {end_time - start_time:.1f} seconds. With {get_def_name()}')
+        return result
+    return wrapper
 
 
 def get_def_name():
     # print(f"This message is printed from {inspect.currentframe().f_back.f_code.co_name}")
     def_name = 'DEF ' + inspect.currentframe().f_back.f_code.co_name + '()'
     return def_name
+
 
 def get_tags_from_first_tiff(tiff_path):
 
@@ -39,27 +61,32 @@ def get_tags_from_first_tiff(tiff_path):
 
     return [output_str, image_width, image_length, exposure_time_ms]
 
+
 def get_tiff_list(tiff_path):
     file_names = os.listdir(tiff_path)
     tiff_files = [f for f in file_names if f.lower().endswith('.tif') or f.lower().endswith('.tiff')]
     return tiff_files
 
-# def read_image(file_path):
-#     img = Image.open(file_path)
-#     img_array = np.array(img)
-#     return csr_matrix(img_array)
 
-# def worker(file_path):
-#     # 你的函数
-#     return read_image(file_path)
+# @timer_decorator
+# def read_all_images(tiff_path, **kwargs):
+#     debugging = kwargs.get('debugging', True)
+#     pickle_usage = kwargs.get('pickle_usage', True)
+#     tiff_amount_cutoff = kwargs.get('tiff_amount_cutoff', None)
 
-# def Threading_read_images(file_path):
-#     tiff_filenames = get_tiff_list(file_path)
-#     tiff_addresses = [os.path.join(file_path, fn) for fn in tiff_filenames]
+#     image_arrays = []
+#     if debugging==True and pickle_usage==False:
+#         print('NOT USING PICKLE')
+    
+#     if os.path.exists(f'{tiff_path}\\image_arrays.pkl') and pickle_usage==True:
+#         with open(f'{tiff_path}\\image_arrays.pkl', 'rb') as f:
+#             image_arrays = pickle.load(f)
+#         print(f'{tiff_path}\nLoaded image_arrays.pkl')
+#     else:
+#         image_arrays = Threading_read_images(tiff_path, tiff_amount_cutoff)
 
-#     # max_workers should be a bit bigger than the number of threads for I/O intensive tasks
-#     with ThreadPoolExecutor(max_workers=60) as executor:
-#         futures = [executor.submit(worker, addr) for addr in tiff_addresses]
-#     image_arrays = [future.result() for future in futures]
+#         if pickle_usage==True:
+#             with open(f'{tiff_path}\\image_arrays.pkl', 'wb') as f:
+#                 pickle.dump(image_arrays, f)
 
 #     return image_arrays

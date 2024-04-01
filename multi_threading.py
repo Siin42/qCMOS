@@ -7,8 +7,8 @@ from scipy.sparse import csr_matrix
 from functools import reduce
 import numpy as np
 from operator import add
-
-from utils import get_tiff_list
+import pickle
+from utils import get_tiff_list, timer_decorator
 
 
 def read_image(file_path):
@@ -33,6 +33,29 @@ def Threading_read_images(file_path, tiff_amount_cutoff=None):
     with ThreadPoolExecutor(max_workers=60) as executor:
         futures = [executor.submit(worker, addr) for addr in tiff_addresses]
     image_arrays = [future.result() for future in futures]
+
+    return image_arrays
+
+@timer_decorator
+def read_all_images(tiff_path, **kwargs):
+    debugging = kwargs.get('debugging', True)
+    pickle_usage = kwargs.get('pickle_usage', True)
+    tiff_amount_cutoff = kwargs.get('tiff_amount_cutoff', None)
+
+    image_arrays = []
+    if debugging==True and pickle_usage==False:
+        print('NOT USING PICKLE')
+    
+    if os.path.exists(f'{tiff_path}\\image_arrays.pkl') and pickle_usage==True:
+        with open(f'{tiff_path}\\image_arrays.pkl', 'rb') as f:
+            image_arrays = pickle.load(f)
+        print(f'{tiff_path}\nLoaded image_arrays.pkl')
+    else:
+        image_arrays = Threading_read_images(tiff_path, tiff_amount_cutoff)
+
+        if pickle_usage==True:
+            with open(f'{tiff_path}\\image_arrays.pkl', 'wb') as f:
+                pickle.dump(image_arrays, f)
 
     return image_arrays
 
