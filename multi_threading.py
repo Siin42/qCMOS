@@ -38,7 +38,9 @@ def Threading_read_images(file_path, tiff_amount_cutoff=None):
 
 @timer_decorator
 def read_all_images(tiff_path, **kwargs):
-    debugging = kwargs.get('debugging', True)
+    # if debugging is not yet defined in global, set it to be True
+    if 'debugging' not in globals():
+        debugging = True
     pickle_usage = kwargs.get('pickle_usage', True)
     tiff_amount_cutoff = kwargs.get('tiff_amount_cutoff', None)
 
@@ -49,10 +51,11 @@ def read_all_images(tiff_path, **kwargs):
     if os.path.exists(f'{tiff_path}\\image_arrays.pkl') and pickle_usage==True:
         with open(f'{tiff_path}\\image_arrays.pkl', 'rb') as f:
             image_arrays = pickle.load(f)
-        print(f'{tiff_path}\nLoaded image_arrays.pkl')
+        if debugging==True:
+            print(f'{tiff_path}\nLoaded image_arrays.pkl')
+
     else:
         image_arrays = Threading_read_images(tiff_path, tiff_amount_cutoff)
-
         if pickle_usage==True:
             with open(f'{tiff_path}\\image_arrays.pkl', 'wb') as f:
                 pickle.dump(image_arrays, f)
@@ -73,21 +76,33 @@ def parallel_exponentiate_RMS(image_arrays, exponent):
 
 
 
+
 def sum_sublist(sublist):
     return reduce(add, sublist)
 
 def parallel_sum(image_arrays):
-    # Get the number of CPU cores
+    
     num_splits = os.cpu_count()
-
-    # Split the list into sublists
     sublists = np.array_split(image_arrays, num_splits)
-
-    # Use a ProcessPoolExecutor to compute the sum of each sublist in parallel
     with ProcessPoolExecutor() as executor:
         sublist_sums = list(executor.map(sum_sublist, sublists))
 
-    # Compute the final sum
     total_sum = reduce(add, sublist_sums)
 
     return total_sum
+
+def frame_sum_sublist(sublist):
+    return [np.sum(arr) for arr in sublist]
+    
+def parallel_frame_sum(image_arrays):
+    
+    num_splits = os.cpu_count()
+    sublists = np.array_split(image_arrays, num_splits)
+    with ProcessPoolExecutor() as executor:
+        sublist_frame_sums = list(executor.map(frame_sum_sublist, sublists))
+
+    whole_frame_sum = []
+    for sublist_sum in sublist_frame_sums:
+        whole_frame_sum.extend(sublist_sum)
+
+    return whole_frame_sum

@@ -10,8 +10,9 @@ import time
 def timer_decorator(func):
 
     def wrapper(*args, **kwargs):
-
-        debugging = kwargs.get('debugging', True)
+        # if debugging is not yet defined in global, set it to be True
+        if 'debugging' not in globals():
+            debugging = True
 
         start_time = time.time()
         result = func(*args, **kwargs)
@@ -69,9 +70,11 @@ def get_tiff_list(tiff_path):
 import matplotlib.pyplot as plt
 
 @timer_decorator
-def plot_SUM_or_RMS(sum_array, tiff_path, **kwargs):
+def plot_SUM_or_RMS(array_to_plot, tiff_path, **kwargs):
+    # if debugging is not yet defined in global, set it to be True
+    if 'debugging' not in globals():
+        debugging = True
     plot_type = kwargs.get('plot_type', 'bar')
-    debugging = kwargs.get('debugging', True)
     bin_amount = kwargs.get('bin_amount', 100)
     heatmap_max = kwargs.get('heatmap_max')
     save = kwargs.get('save', False)
@@ -87,14 +90,14 @@ def plot_SUM_or_RMS(sum_array, tiff_path, **kwargs):
     caption_tags, image_width, image_length, exposure_time_ms = get_tags_from_first_tiff(tiff_path)[:4]
     total_pixel_amount = image_width * image_length
 
-    caption_statistics_SUM = f'{np.sum(sum_array==0)} pixels had 0 count in the whole set of data, {np.sum(sum_array==0) / total_pixel_amount * 100:.1f}%; \n' + \
-            f'SUM(10% of the pixels) <= {np.percentile(sum_array, 10)}; \n' + \
-            f'SUM(90% of the pixels) <= {np.percentile(sum_array, 90)}'
-    caption_statistics_RMS = f'{np.sum(sum_array==0)} pixels had 0 count in the whole set of data, {np.sum(sum_array==0) / total_pixel_amount * 100:.1f}%; \n' + \
-            f'RMS(10% of the pixels) <= {np.percentile(sum_array, 10):.3f}; \n' + \
-            f'RMS(90% of the pixels) <= {np.percentile(sum_array, 90):.3f}; \n' + \
-            f'pixel max-RMS: {np.max(sum_array):.3f} e- \n' + \
-            f'Camera RMS: {np.sqrt(np.mean(sum_array**2)):.3f} e-'
+    caption_statistics_SUM = f'{np.sum(array_to_plot==0)} pixels had 0 count in the whole set of data, {np.sum(array_to_plot==0) / total_pixel_amount * 100:.1f}%; \n' + \
+            f'SUM(10% of the pixels) <= {np.percentile(array_to_plot, 10)}; \n' + \
+            f'SUM(90% of the pixels) <= {np.percentile(array_to_plot, 90)}'
+    caption_statistics_RMS = f'{np.sum(array_to_plot==0)} pixels had 0 count in the whole set of data, {np.sum(array_to_plot==0) / total_pixel_amount * 100:.1f}%; \n' + \
+            f'RMS(10% of the pixels) <= {np.percentile(array_to_plot, 10):.3f}; \n' + \
+            f'RMS(90% of the pixels) <= {np.percentile(array_to_plot, 90):.3f}; \n' + \
+            f'pixel max-RMS: {np.max(array_to_plot):.3f} e- \n' + \
+            f'Camera RMS: {np.sqrt(np.mean(array_to_plot**2)):.3f} e-'
 
     figname_optional = ''
 
@@ -103,8 +106,8 @@ def plot_SUM_or_RMS(sum_array, tiff_path, **kwargs):
         # It was cutting right tail of the histogram. Name a max for it
         # counts, bin_edges = np.histogram(sum_image_arrays.flatten(), bins=bin_amount)
         min_value = 0
-        max_value = np.max(sum_array)
-        counts, bin_edges = np.histogram(sum_array.flatten(), bins=bin_amount, range=(min_value, max_value))
+        max_value = np.max(array_to_plot)
+        counts, bin_edges = np.histogram(array_to_plot.flatten(), bins=bin_amount, range=(min_value, max_value))
 
         if debugging==True:
             # print(f'bin amount: {bin_amount}')
@@ -141,7 +144,7 @@ def plot_SUM_or_RMS(sum_array, tiff_path, **kwargs):
         heat_plot_width = np.round(image_width/image_length * 6, 1) + 2
         fig = plt.figure(figsize=(heat_plot_width, 6), dpi=400)
 
-        plt.imshow(sum_array, cmap='hot', interpolation='nearest', vmax=heatmap_max)
+        plt.imshow(array_to_plot, cmap='hot', interpolation='nearest', vmax=heatmap_max)
         if array_type=='SUM':
             plt.colorbar(label='Counts (Sum)')
         elif array_type=='RMS':
