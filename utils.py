@@ -8,14 +8,15 @@ import matplotlib.pyplot as plt
 from functools import wraps
 
 
-def timer_decorator(debugging):
+def timer_decorator(configs):
+    debugging = configs['debugging']
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             start_time = time.time()
             result = func(*args, **kwargs)
             end_time = time.time()
-            if debugging==[True]:
+            if debugging==True:
                 print(f"Function   {func.__name__}() took {end_time - start_time:.1f} seconds to run.")
             
             # if debugging==True:
@@ -67,11 +68,13 @@ def get_tiff_list(tiff_path):
 
 
 
-@timer_decorator(debugging)
-def plot_SUM_or_RMS(array_to_plot, tiff_path, **kwargs):
+# @timer_decorator(debugging)
+def plot_SUM_or_RMS(array_to_plot, tiff_path, configs, **kwargs):
     # # if debugging is not yet defined in global, set it to be True
     # if 'debugging' not in globals():
     #     debugging = True
+    debugging = configs['debugging']
+    
     plot_type = kwargs.get('plot_type', 'bar')
     bin_amount = kwargs.get('bin_amount', 100)
     heatmap_max = kwargs.get('heatmap_max')

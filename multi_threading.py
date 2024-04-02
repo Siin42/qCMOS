@@ -8,7 +8,7 @@ from functools import reduce
 import numpy as np
 from operator import add
 import pickle
-from utils import get_tiff_list, timer_decorator
+from utils import get_tiff_list
 
 
 def read_image(file_path):
@@ -21,7 +21,10 @@ def worker(file_path):
     return read_image(file_path)
 
 # def Threading_read_images(file_path):
-def Threading_read_images(file_path, tiff_amount_cutoff=None):
+# def Threading_read_images(file_path, tiff_amount_cutoff=None):
+def Threading_read_images(file_path, configs):
+    tiff_amount_cutoff = configs['tiff_amount_cutoff']
+
     tiff_filenames = get_tiff_list(file_path)
     if tiff_amount_cutoff is not None:
         if len(tiff_filenames) < tiff_amount_cutoff:
@@ -36,10 +39,13 @@ def Threading_read_images(file_path, tiff_amount_cutoff=None):
 
     return image_arrays
 
-@timer_decorator(debugging)
-def read_all_images(tiff_path, **kwargs):
-    pickle_usage = kwargs.get('pickle_usage', True)
-    tiff_amount_cutoff = kwargs.get('tiff_amount_cutoff', None)
+# @timer_decorator(debugging)
+def read_all_images(tiff_path, configs):
+    # pickle_usage = kwargs.get('pickle_usage', True)
+    # tiff_amount_cutoff = kwargs.get('tiff_amount_cutoff', None)
+    debugging = configs['debugging']
+    pickle_usage = configs['pickle_usage']
+    tiff_amount_cutoff = configs['tiff_amount_cutoff']
 
     image_arrays = []
     if debugging==True and pickle_usage==False:
@@ -78,7 +84,6 @@ def sum_sublist(sublist):
     return reduce(add, sublist)
 
 def parallel_sum(image_arrays):
-    
     num_splits = os.cpu_count()
     sublists = np.array_split(image_arrays, num_splits)
     with ProcessPoolExecutor() as executor:
