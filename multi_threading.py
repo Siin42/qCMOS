@@ -36,11 +36,8 @@ def Threading_read_images(file_path, tiff_amount_cutoff=None):
 
     return image_arrays
 
-@timer_decorator
+@timer_decorator(debugging)
 def read_all_images(tiff_path, **kwargs):
-    # if debugging is not yet defined in global, set it to be True
-    if 'debugging' not in globals():
-        debugging = True
     pickle_usage = kwargs.get('pickle_usage', True)
     tiff_amount_cutoff = kwargs.get('tiff_amount_cutoff', None)
 

@@ -4,26 +4,25 @@ from PIL import Image
 import re
 import numpy as np
 import time
+import matplotlib.pyplot as plt
+from functools import wraps
 
 
-
-def timer_decorator(func):
-
-    def wrapper(*args, **kwargs):
-        # if debugging is not yet defined in global, set it to be True
-        if 'debugging' not in globals():
-            debugging = True
-
-        start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        if debugging==True:
-            print(f"Function   {func.__name__}() took {end_time - start_time:.1f} seconds to run.")
-        
-        # if debugging==True:
-            # print(f'File reading time: {end_time - start_time:.1f} seconds. With {get_def_name()}')
-        return result
-    return wrapper
+def timer_decorator(debugging):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            result = func(*args, **kwargs)
+            end_time = time.time()
+            if debugging==[True]:
+                print(f"Function   {func.__name__}() took {end_time - start_time:.1f} seconds to run.")
+            
+            # if debugging==True:
+                # print(f'File reading time: {end_time - start_time:.1f} seconds. With {get_def_name()}')
+            return result
+        return wrapper
+    return decorator
 
 
 def get_def_name():
@@ -67,13 +66,12 @@ def get_tiff_list(tiff_path):
     return tiff_files
 
 
-import matplotlib.pyplot as plt
 
-@timer_decorator
+@timer_decorator(debugging)
 def plot_SUM_or_RMS(array_to_plot, tiff_path, **kwargs):
-    # if debugging is not yet defined in global, set it to be True
-    if 'debugging' not in globals():
-        debugging = True
+    # # if debugging is not yet defined in global, set it to be True
+    # if 'debugging' not in globals():
+    #     debugging = True
     plot_type = kwargs.get('plot_type', 'bar')
     bin_amount = kwargs.get('bin_amount', 100)
     heatmap_max = kwargs.get('heatmap_max')
