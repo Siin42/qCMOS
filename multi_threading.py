@@ -8,21 +8,19 @@ from functools import reduce
 import numpy as np
 from operator import add
 import pickle
-from utils import get_tiff_list
+from utils import get_tiff_list, configDict
 
 
-def read_image(file_path):
+def read_image(file_path:str) -> csr_matrix:
     img = Image.open(file_path)
     img_array = np.array(img)
     return csr_matrix(img_array)
 
-def worker(file_path):
+def worker(file_path:str) -> csr_matrix:
     # Your function
     return read_image(file_path)
 
-# def Threading_read_images(file_path):
-# def Threading_read_images(file_path, tiff_amount_cutoff=None):
-def Threading_read_images(file_path, configs):
+def Threading_read_images(file_path:str, configs:configDict) -> list[csr_matrix]:
     tiff_amount_cutoff = configs['tiff_amount_cutoff']
 
     tiff_filenames = get_tiff_list(file_path)
@@ -40,7 +38,16 @@ def Threading_read_images(file_path, configs):
     return image_arrays
 
 # @timer_decorator(debugging)
-def read_all_images(tiff_path, configs):
+def read_all_images(tiff_path:str, configs:configDict) -> list[csr_matrix]:
+    """
+    Parameters:
+        - tiff_path(str):
+    
+    Optionals packed in _configs:
+        - debugging(bool):
+        - pickle_usage(bool):
+        - tiff_amount_cutoff(int):
+    """
     # pickle_usage = kwargs.get('pickle_usage', True)
     # tiff_amount_cutoff = kwargs.get('tiff_amount_cutoff', None)
     debugging = configs['debugging']
@@ -53,9 +60,11 @@ def read_all_images(tiff_path, configs):
     
     if os.path.exists(f'{tiff_path}\\image_arrays.pkl') and pickle_usage==True:
         with open(f'{tiff_path}\\image_arrays.pkl', 'rb') as f:
-            image_arrays = pickle.load(f)
+            image_arrays:list[csr_matrix] = pickle.load(f)
         if debugging==True:
             print(f'{tiff_path}\nLoaded image_arrays.pkl')
+        
+        image_arrays = image_arrays[:tiff_amount_cutoff]
 
     else:
         image_arrays = Threading_read_images(tiff_path, tiff_amount_cutoff)
@@ -67,12 +76,12 @@ def read_all_images(tiff_path, configs):
 
 
 
-def exponentiate_RMS(img, exponent):
+def exponentiate_RMS(img:csr_matrix, exponent:int) ->csr_matrix:
     return img.power(exponent)
 
-def parallel_exponentiate_RMS(image_arrays, exponent):
+def parallel_exponentiate_RMS(image_arrays_csr:list[csr_matrix], exponent:int) -> list[csr_matrix]:
     with ProcessPoolExecutor() as executor:
-        exponentiation = list(executor.map(exponentiate_RMS, image_arrays, [exponent]*len(image_arrays)))
+        exponentiation = list(executor.map(exponentiate_RMS, image_arrays_csr, [exponent]*len(image_arrays_csr)))
 
     return exponentiation
 
@@ -80,30 +89,30 @@ def parallel_exponentiate_RMS(image_arrays, exponent):
 
 
 
-def sum_sublist(sublist):
+def sum_sublist(sublist:list[csr_matrix]) -> csr_matrix:
     return reduce(add, sublist)
 
-def parallel_sum(image_arrays):
+def parallel_sum(image_arrays_csr:list[csr_matrix]) -> csr_matrix:
     num_splits = os.cpu_count()
-    sublists = np.array_split(image_arrays, num_splits)
+    sublists:list[csr_matrix] = np.array_split(image_arrays_csr, num_splits)
     with ProcessPoolExecutor() as executor:
-        sublist_sums = list(executor.map(sum_sublist, sublists))
+        sublist_sums:list[csr_matrix] = list(executor.map(sum_sublist, sublists))
 
-    total_sum = reduce(add, sublist_sums)
+    total_sum:csr_matrix = reduce(add, sublist_sums)
 
     return total_sum
 
-def frame_sum_sublist(sublist):
+def frame_sum_sublist(sublist:list[csr_matrix]) -> list[int]:
     return [np.sum(arr) for arr in sublist]
     
-def parallel_frame_sum(image_arrays):
+def parallel_frame_sum(image_arrays_csr:list[csr_matrix]) -> list[int]:
     
     num_splits = os.cpu_count()
-    sublists = np.array_split(image_arrays, num_splits)
+    sublists:list[csr_matrix] = np.array_split(image_arrays_csr, num_splits)
     with ProcessPoolExecutor() as executor:
-        sublist_frame_sums = list(executor.map(frame_sum_sublist, sublists))
+        sublist_frame_sums:list[list[int]] = list(executor.map(frame_sum_sublist, sublists))
 
-    whole_frame_sum = []
+    whole_frame_sum:list[int] = []
     for sublist_sum in sublist_frame_sums:
         whole_frame_sum.extend(sublist_sum)
 

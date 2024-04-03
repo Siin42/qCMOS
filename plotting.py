@@ -2,38 +2,70 @@ from utils import *
 import matplotlib.pyplot as plt
 
 # @timer_decorator(debugging)
-def plot_SUM_or_RMS(array_to_plot, tiff_path, configs, **kwargs):
-    # # if debugging is not yet defined in global, set it to be True
-    # if 'debugging' not in globals():
-    #     debugging = True
-    debugging = configs['debugging']
+def plot_SUM_or_RMS(array_to_plot:np.ndarray, 
+                    tiff_path:str, 
+                    array_configs:configDict, 
+                    plot_configs:plotDict, 
+                    plot_type:str) -> None:
+    """
+    Parameters:
+        - array_to_plot():
+        - tiff_path(str):
+        - array_type(str): SUM, RMS, invididual
     
-    plot_type = kwargs.get('plot_type', 'bar')
-    bin_amount = kwargs.get('bin_amount', 100)
-    heatmap_max = kwargs.get('heatmap_max')
-    save = kwargs.get('save', False)
+    Optionals packed in _array_configs:
+        - debugging(bool):
+        - pickle_usage(bool):
+        - tiff_amount_cutoff(int):
+    
+    Optionals packed in _plot_configs:
+        - array_type(str): 'SUM', 'RMS', or 'individual'
+        - bin_amount(int): amount of bins for the histogram
+        - heatmap_max(int): maximum value for the heatmap
+        - dpi(int): dpi for the heatmap
+        - save(bool): whether to save the plot
 
-    array_type = kwargs.get('array_type')
-    # raise an error if array_type is not defined
-    if array_type is None:
-        raise ValueError('array_type is not defined. Please provide either "SUM" or "RMS"')
+    - plot_type(str): 'bar' or 'heat'
+    """
+    debugging = array_configs['debugging']
+    
+    # plot_type:str = kwargs.get('plot_type', 'bar')
+    if plot_type not in ['heat', 'bar']:
+        raise ValueError('plot_type is wrong. Please provide "heat" or "bar"')
+    
+    # bin_amount:int = kwargs.get('bin_amount', 100)
+    # heatmap_max:int = kwargs.get('heatmap_max')
+    # dpi:int = kwargs.get('dpi', 400)
+    # save:bool = kwargs.get('save', False)
+    array_type = plot_configs['array_type']
+    bin_amount = plot_configs.get('bin_amount', 200)    # two ways of phrasing
+    heatmap_max = plot_configs.get('heatmap_max', None)
+    dpi = plot_configs['dpi']
+    save = plot_configs.get('save', False)
+
+
+    # array_type:str = kwargs.get('array_type')
+    # if array_type is None:
+    #     raise ValueError('array_type is not defined. Please provide "SUM", "RMS" or "individual"')
 
     tiff_filenames = get_tiff_list(tiff_path)
+
 
 
     caption_tags, image_width, image_length, exposure_time_ms = get_tags_from_first_tiff(tiff_path)[:4]
     total_pixel_amount = image_width * image_length
 
-    caption_statistics_SUM = f'{np.sum(array_to_plot==0)} pixels had 0 count in the whole set of data, {np.sum(array_to_plot==0) / total_pixel_amount * 100:.1f}%; \n' + \
-            f'SUM(10% of the pixels) <= {np.percentile(array_to_plot, 10)}; \n' + \
-            f'SUM(90% of the pixels) <= {np.percentile(array_to_plot, 90)}'
-    caption_statistics_RMS = f'{np.sum(array_to_plot==0)} pixels had 0 count in the whole set of data, {np.sum(array_to_plot==0) / total_pixel_amount * 100:.1f}%; \n' + \
-            f'RMS(10% of the pixels) <= {np.percentile(array_to_plot, 10):.3f}; \n' + \
-            f'RMS(90% of the pixels) <= {np.percentile(array_to_plot, 90):.3f}; \n' + \
-            f'pixel max-RMS: {np.max(array_to_plot):.3f} e- \n' + \
-            f'Camera RMS: {np.sqrt(np.mean(array_to_plot**2)):.3f} e-'
-
     figname_optional = ''
+    if array_type=='SUM':
+        caption_statistics_SUM = f'{np.sum(array_to_plot==0)} pixels had 0 count in the whole set of data, {np.sum(array_to_plot==0) / total_pixel_amount * 100:.1f}%; \n' + \
+                f'SUM(10% of the pixels) <= {np.percentile(array_to_plot, 10)}; \n' + \
+                f'SUM(90% of the pixels) <= {np.percentile(array_to_plot, 90)}'
+    elif array_type=='RMS':
+        caption_statistics_RMS = f'{np.sum(array_to_plot==0)} pixels had 0 count in the whole set of data, {np.sum(array_to_plot==0) / total_pixel_amount * 100:.1f}%; \n' + \
+                f'RMS(10% of the pixels) <= {np.percentile(array_to_plot, 10):.3f}; \n' + \
+                f'RMS(90% of the pixels) <= {np.percentile(array_to_plot, 90):.3f}; \n' + \
+                f'pixel max-RMS: {np.max(array_to_plot):.3f} e- \n' + \
+                f'Camera RMS: {np.sqrt(np.mean(array_to_plot**2)):.3f} e-'
 
 
     if plot_type == 'bar':
@@ -72,17 +104,21 @@ def plot_SUM_or_RMS(array_to_plot, tiff_path, configs, **kwargs):
             fig.text(0.15, 0.05, caption_tags + caption_statistics_SUM, ha='left')
         elif array_type=='RMS':
             fig.text(0.15, 0.05, caption_tags + caption_statistics_RMS, ha='left')
+        else:
+            fig.text(0.15, 0.05, caption_tags, ha='left')
         # plt.subplots_adjust(bottom=0.3)
 
     elif plot_type == 'heat':
         heat_plot_width = np.round(image_width/image_length * 6, 1) + 2
-        fig = plt.figure(figsize=(heat_plot_width, 6), dpi=400)
+        fig = plt.figure(figsize=(heat_plot_width, 6), dpi=dpi)
 
         plt.imshow(array_to_plot, cmap='hot', interpolation='nearest', vmax=heatmap_max)
         if array_type=='SUM':
             plt.colorbar(label='Counts (Sum)')
         elif array_type=='RMS':
             plt.colorbar(label='RMS')
+        else:
+            plt.colorbar(label='None')
         if heatmap_max is not None:
             caption_tags += f'Clipped at {heatmap_max} counts\n'
             figname_optional += f'_clip{heatmap_max}'
@@ -93,6 +129,9 @@ def plot_SUM_or_RMS(array_to_plot, tiff_path, configs, **kwargs):
             fig.text(0.15, 0.05, caption_tags + caption_statistics_SUM, ha='left')
         elif array_type=='RMS':
             fig.text(0.15, 0.05, caption_tags + caption_statistics_RMS, ha='left')
+        else:
+            fig.text(0.15, 0.05, caption_tags, ha='left')
+            
     
 
 
@@ -103,5 +142,9 @@ def plot_SUM_or_RMS(array_to_plot, tiff_path, configs, **kwargs):
             plt.savefig(f'SUM_{plot_type}{figname_optional}_{exposure_time_ms}ms_{image_width}x{image_length}.png')
         elif array_type=='RMS':
             plt.savefig(f'RMS_{plot_type}{figname_optional}_{exposure_time_ms}ms_{image_width}x{image_length}.png')
+        elif array_type=='individual':
+            pass
+        else:
+            raise ValueError('array_type is not defined. Please provide "SUM", "RMS" or "individual"')
 
     plt.show()
