@@ -5,23 +5,23 @@ import matplotlib.pyplot as plt
 def plot_SUM_or_RMS(array_to_plot:np.ndarray, tiff_path:str, array_configs:configDict, plot_configs:plotDict, plot_type:str) -> None:
     """
     Parameters:
-        - array_to_plot():
-        - tiff_path(str):
-        - array_type(str): SUM, RMS, invididual
+        - `array_to_plot`():
+        - `tiff_path`(str):
+        - `array_type`(str): SUM, RMS, invididual
     
     Optionals packed in _array_configs:
-        - debugging(bool):
-        - pickle_usage(bool):
-        - tiff_amount_cutoff(int):
+        - `debugging`(bool):
+        - `pickle_usage`(bool):
+        - `tiff_amount_cutoff`(int):
     
     Optionals packed in _plot_configs:
-        - array_type(str): 'SUM', 'RMS', or 'individual'
-        - bin_amount(int): amount of bins for the histogram
-        - heatmap_max(int): maximum value for the heatmap
-        - dpi(int): dpi for the heatmap
-        - save(bool): whether to save the plot
+        - `array_type`(str): 'SUM', 'RMS', or 'individual'
+        - `bin_amount`(int): amount of bins for the histogram
+        - `heatmap_max`(int): maximum value for the heatmap
+        - `dpi`(int): dpi for the heatmap
+        - `save`(bool): whether to save the plot
 
-    - plot_type(str): 'bar' or 'heat'
+    - `plot_type`(str): 'bar' or 'heat'
     """
     debugging = array_configs['debugging']
     

@@ -13,7 +13,7 @@ from utils import get_tiff_list, configDict
 
 def read_image(file_path:str) -> csr_matrix:
     """
-    worker of Threading_read_images()
+    worker of `Threading_read_images()`
     """
     img = Image.open(file_path)
     img_array = np.array(img)
@@ -47,12 +47,12 @@ def Threading_read_images(file_path:str, configs:configDict) -> list[csr_matrix]
 def read_all_images(tiff_path:str, configs:configDict) -> list[csr_matrix]:
     """
     Parameters:
-        - tiff_path (str):
+        - `tiff_path`(str):
     
     Optionals packed in _configs:
-        - debugging (bool):
-        - pickle_usage (bool):
-        - tiff_amount_cutoff (int):
+        - `debugging`(bool):
+        - `pickle_usage`(bool):
+        - `tiff_amount_cutoff`(int):
     """
     # pickle_usage = kwargs.get('pickle_usage', True)
     # tiff_amount_cutoff = kwargs.get('tiff_amount_cutoff', None)

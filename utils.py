@@ -13,9 +13,9 @@ class configDict(TypedDict):
     A class to hold configuration values.
     
     Attributes:
-        debugging (bool): Whether debugging is enabled.
-        pickle_usage (bool): Whether to use pickle.
-        tiff_amount_cutoff (int): The amount of tiff files to process. If None, all files are processed.
+        `debugging`(bool): Whether debugging is enabled.
+        `pickle_usage`(bool): Whether to use pickle.
+        `tiff_amount_cutoff`(int): The amount of tiff files to process. If None, all files are processed.
     """
     debugging: bool
     pickle_usage: bool
@@ -26,9 +26,9 @@ class plotDict(TypedDict):
     A class to hold configuration values.
     
     Attributes:
-        save (bool): Whether to save the plot.
-        array_type (str): 'SUM', 'RMS', or 'individual'
-        heatmap_max (int): The maximum value for the heatmap. None for automatic scaling.
+        `save`(bool): Whether to save the plot.
+        `array_type`(str): `'SUM'`, `'RMS'`, or `'individual'`
+        `heatmap_max`(int): The maximum value for the heatmap. None for automatic scaling.
     """
     array_type: str
     bin_amount: int
@@ -41,7 +41,7 @@ def timer_decorator(configs:configDict):
     To print the time taken for a function to run.
 
     Parameters:
-        - debugging (bool): Print only when debugging is enabled.
+        - `debugging`(bool): Print only when debugging is enabled.
     """
     debugging = configs['debugging']
     def decorator(func):
@@ -110,8 +110,8 @@ def get_tiff_list(tiff_path:str, configs:configDict) -> list[str]:
     Get the list of tiff files in the folder.
 
     Parameters:
-        - tiff_path (str): The path to the tiff files.
-        - config: tiff_amount_cutoff (int): Will throw an error if the amount of tiff files is less than this value.
+        - `tiff_path`(str): The path to the tiff files.
+        - `config`: `tiff_amount_cutoff`(int): Will throw an error if the amount of tiff files is less than this value.
     """
     tiff_amount_cutoff = configs['tiff_amount_cutoff']
     
