@@ -15,7 +15,7 @@ class configDict(TypedDict):
     Attributes:
         debugging (bool): Whether debugging is enabled.
         pickle_usage (bool): Whether to use pickle.
-        tiff_amount_cutoff(int): The amount of tiff files to process. If None, all files are processed.
+        tiff_amount_cutoff (int): The amount of tiff files to process. If None, all files are processed.
     """
     debugging: bool
     pickle_usage: bool
@@ -26,9 +26,9 @@ class plotDict(TypedDict):
     A class to hold configuration values.
     
     Attributes:
-        save(bool): Whether to save the plot.
-        array_type(str): 'SUM', 'RMS', or 'individual'
-        heatmap_max(int): The maximum value for the heatmap. None for automatic scaling.
+        save (bool): Whether to save the plot.
+        array_type (str): 'SUM', 'RMS', or 'individual'
+        heatmap_max (int): The maximum value for the heatmap. None for automatic scaling.
     """
     array_type: str
     bin_amount: int
@@ -37,6 +37,12 @@ class plotDict(TypedDict):
     save: bool
 
 def timer_decorator(configs:configDict):
+    """
+    To print the time taken for a function to run.
+
+    Parameters:
+        - debugging (bool): Print only when debugging is enabled.
+    """
     debugging = configs['debugging']
     def decorator(func):
         @wraps(func)
@@ -62,6 +68,9 @@ def timer_decorator(configs:configDict):
 
 
 def get_tags_from_first_tiff(tiff_path:str) -> list[Union[str, int]]:
+    """
+    Get the tags from the first tiff file in the folder.
+    """
 
     tiff_filenames = get_tiff_list(tiff_path)
     image_first = Image.open(f'{tiff_path}\\{tiff_filenames[0]}')
@@ -96,7 +105,22 @@ def get_tags_from_first_tiff(tiff_path:str) -> list[Union[str, int]]:
     return [output_str, image_width, image_length, exposure_time_ms]
 
 
-def get_tiff_list(tiff_path:str) -> list[str]:
+def get_tiff_list(tiff_path:str, configs:configDict) -> list[str]:
+    """
+    Get the list of tiff files in the folder.
+
+    Parameters:
+        - tiff_path (str): The path to the tiff files.
+        - config: tiff_amount_cutoff (int): Will throw an error if the amount of tiff files is less than this value.
+    """
+    tiff_amount_cutoff = configs['tiff_amount_cutoff']
+    
     file_names = os.listdir(tiff_path)
-    tiff_files = [f for f in file_names if f.lower().endswith('.tif') or f.lower().endswith('.tiff')]
-    return tiff_files
+    tiff_filenames = [f for f in file_names if f.lower().endswith('.tif') or f.lower().endswith('.tiff')]
+
+    if tiff_amount_cutoff is not None:
+        if len(tiff_filenames) < tiff_amount_cutoff:
+            raise ValueError(f"Insufficient tiff files. Expected at least {tiff_amount_cutoff}, but got {len(tiff_filenames)}")
+        tiff_filenames = tiff_filenames[:tiff_amount_cutoff]
+
+    return tiff_filenames

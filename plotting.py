@@ -2,11 +2,7 @@ from utils import *
 import matplotlib.pyplot as plt
 
 # @timer_decorator(debugging)
-def plot_SUM_or_RMS(array_to_plot:np.ndarray, 
-                    tiff_path:str, 
-                    array_configs:configDict, 
-                    plot_configs:plotDict, 
-                    plot_type:str) -> None:
+def plot_SUM_or_RMS(array_to_plot:np.ndarray, tiff_path:str, array_configs:configDict, plot_configs:plotDict, plot_type:str) -> None:
     """
     Parameters:
         - array_to_plot():
@@ -48,7 +44,7 @@ def plot_SUM_or_RMS(array_to_plot:np.ndarray,
     # if array_type is None:
     #     raise ValueError('array_type is not defined. Please provide "SUM", "RMS" or "individual"')
 
-    tiff_filenames = get_tiff_list(tiff_path)
+    tiff_filenames = get_tiff_list(tiff_path, array_configs)
 
 
 

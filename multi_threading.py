@@ -12,6 +12,9 @@ from utils import get_tiff_list, configDict
 
 
 def read_image(file_path:str) -> csr_matrix:
+    """
+    worker of Threading_read_images()
+    """
     img = Image.open(file_path)
     img_array = np.array(img)
     return csr_matrix(img_array)
@@ -21,13 +24,16 @@ def worker(file_path:str) -> csr_matrix:
     return read_image(file_path)
 
 def Threading_read_images(file_path:str, configs:configDict) -> list[csr_matrix]:
-    tiff_amount_cutoff = configs['tiff_amount_cutoff']
+    """
+    read images in parallel
+    """
+    # tiff_amount_cutoff = configs['tiff_amount_cutoff']
 
-    tiff_filenames = get_tiff_list(file_path)
-    if tiff_amount_cutoff is not None:
-        if len(tiff_filenames) < tiff_amount_cutoff:
-            raise ValueError(f"Insufficient tiff files. Expected at least {tiff_amount_cutoff}, but got {len(tiff_filenames)}")
-        tiff_filenames = tiff_filenames[:tiff_amount_cutoff]
+    tiff_filenames = get_tiff_list(file_path, configs)
+    # if tiff_amount_cutoff is not None:
+    #     if len(tiff_filenames) < tiff_amount_cutoff:
+    #         raise ValueError(f"Insufficient tiff files. Expected at least {tiff_amount_cutoff}, but got {len(tiff_filenames)}")
+    #     tiff_filenames = tiff_filenames[:tiff_amount_cutoff]
     tiff_addresses = [os.path.join(file_path, fn) for fn in tiff_filenames]
 
     # max_workers should be a bit bigger than the number of threads for I/O intensive tasks
@@ -41,12 +47,12 @@ def Threading_read_images(file_path:str, configs:configDict) -> list[csr_matrix]
 def read_all_images(tiff_path:str, configs:configDict) -> list[csr_matrix]:
     """
     Parameters:
-        - tiff_path(str):
+        - tiff_path (str):
     
     Optionals packed in _configs:
-        - debugging(bool):
-        - pickle_usage(bool):
-        - tiff_amount_cutoff(int):
+        - debugging (bool):
+        - pickle_usage (bool):
+        - tiff_amount_cutoff (int):
     """
     # pickle_usage = kwargs.get('pickle_usage', True)
     # tiff_amount_cutoff = kwargs.get('tiff_amount_cutoff', None)
@@ -77,9 +83,15 @@ def read_all_images(tiff_path:str, configs:configDict) -> list[csr_matrix]:
 
 
 def exponentiate_RMS(img:csr_matrix, exponent:int) ->csr_matrix:
+    """
+    Square on every elements of the matrix
+    """
     return img.power(exponent)
 
 def parallel_exponentiate_RMS(image_arrays_csr:list[csr_matrix], exponent:int) -> list[csr_matrix]:
+    """
+    Square on every elements of the matrix, but in parallel
+    """
     with ProcessPoolExecutor() as executor:
         exponentiation = list(executor.map(exponentiate_RMS, image_arrays_csr, [exponent]*len(image_arrays_csr)))
 
@@ -90,9 +102,17 @@ def parallel_exponentiate_RMS(image_arrays_csr:list[csr_matrix], exponent:int) -
 
 
 def sum_sublist(sublist:list[csr_matrix]) -> csr_matrix:
+    """
+    Add intensity values for each pixel across the frames. 
+    """
     return reduce(add, sublist)
 
 def parallel_sum(image_arrays_csr:list[csr_matrix]) -> csr_matrix:
+    """
+    divide the list into sublists and sum them in parallel. 
+
+    - Generate a total sum for each pixel across the frames. 
+    """
     num_splits = os.cpu_count()
     sublists:list[csr_matrix] = np.array_split(image_arrays_csr, num_splits)
     with ProcessPoolExecutor() as executor:
@@ -103,10 +123,19 @@ def parallel_sum(image_arrays_csr:list[csr_matrix]) -> csr_matrix:
     return total_sum
 
 def frame_sum_sublist(sublist:list[csr_matrix]) -> list[int]:
+    """
+    add intensity values 
+    
+    - on the whole frame
+    """
     return [np.sum(arr) for arr in sublist]
     
 def parallel_frame_sum(image_arrays_csr:list[csr_matrix]) -> list[int]:
+    """
+    get the sum of intensity values in parallel
     
+    - on the whole frame
+    """
     num_splits = os.cpu_count()
     sublists:list[csr_matrix] = np.array_split(image_arrays_csr, num_splits)
     with ProcessPoolExecutor() as executor:
