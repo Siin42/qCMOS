@@ -73,7 +73,7 @@ def read_all_images(tiff_path:str, configs:configDict) -> list[csr_matrix]:
         image_arrays = image_arrays[:tiff_amount_cutoff]
 
     else:
-        image_arrays = Threading_read_images(tiff_path, tiff_amount_cutoff)
+        image_arrays = Threading_read_images(tiff_path, configs)
         if pickle_usage==True:
             with open(f'{tiff_path}\\image_arrays.pkl', 'wb') as f:
                 pickle.dump(image_arrays, f)
@@ -105,6 +105,8 @@ def sum_sublist(sublist:list[csr_matrix]) -> csr_matrix:
     """
     Add intensity values for each pixel across the frames. 
     """
+    # return reduce(add, sublist)
+    print(f'sublist shapes: {[arr.shape for arr in sublist]}')
     return reduce(add, sublist)
 
 def parallel_sum(image_arrays_csr:list[csr_matrix]) -> csr_matrix:
@@ -117,8 +119,16 @@ def parallel_sum(image_arrays_csr:list[csr_matrix]) -> csr_matrix:
     sublists:list[csr_matrix] = np.array_split(image_arrays_csr, num_splits)
     with ProcessPoolExecutor() as executor:
         sublist_sums:list[csr_matrix] = list(executor.map(sum_sublist, sublists))
+    
+    print(f'sublist_sums:{[subsum.todense() for subsum in sublist_sums]}')
+    print(f'sublist_sums:{sublist_sums}')
+    print(f'type of sublist_sums[0]: {type(sublist_sums[0])}')
 
+    # total_sum:csr_matrix = reduce(add, sublist_sums)
     total_sum:csr_matrix = reduce(add, sublist_sums)
+    # total_sum = sum_sublist(sublist_sums)
+
+    print(f'totalsum:{total_sum}')
 
     return total_sum
 

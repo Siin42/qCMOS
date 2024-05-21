@@ -5,7 +5,7 @@ import re
 import numpy as np
 import time
 from functools import wraps
-from typing import TypedDict, Union, Optional
+from typing import TypedDict
 
 
 class configDict(TypedDict):
@@ -23,7 +23,7 @@ class configDict(TypedDict):
 
 class plotDict(TypedDict):
     """
-    A class to hold configuration values.
+    A class to hold plot configuration values.
     
     Attributes:
         `save`(bool): Whether to save the plot.
@@ -32,9 +32,14 @@ class plotDict(TypedDict):
     """
     array_type: str
     bin_amount: int
-    heatmap_max: Optional[int]  # int or None
+    heatmap_max: int | None
     dpi: int
     save: bool
+
+configs:configDict = dict(debugging=True, 
+                  pickle_usage=True, 
+                  tiff_amount_cutoff=None
+                  )
 
 def timer_decorator(configs:configDict):
     """
@@ -67,12 +72,12 @@ def timer_decorator(configs:configDict):
 #     return def_name
 
 
-def get_tags_from_first_tiff(tiff_path:str) -> list[Union[str, int]]:
+def get_tags_from_first_tiff(tiff_path:str) -> list[str | int]:
     """
     Get the tags from the first tiff file in the folder.
     """
 
-    tiff_filenames = get_tiff_list(tiff_path)
+    tiff_filenames = get_tiff_list(tiff_path, configs)
     image_first = Image.open(f'{tiff_path}\\{tiff_filenames[0]}')
 
     # tag 270 Image description
@@ -124,3 +129,6 @@ def get_tiff_list(tiff_path:str, configs:configDict) -> list[str]:
         tiff_filenames = tiff_filenames[:tiff_amount_cutoff]
 
     return tiff_filenames
+
+if __name__=='__main__':
+    pass
