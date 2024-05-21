@@ -1,3 +1,8 @@
 /data
+/__pycache__
+/auxiliary
+/png repository
+/.ipynb_checkpoints
 /*.pdf
 /*.png
+/*.pptx

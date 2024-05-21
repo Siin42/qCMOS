@@ -120,7 +120,6 @@ def parallel_sum(image_arrays_arr:list[np.ndarray]) -> np.ndarray:
     with ProcessPoolExecutor() as executor:
         sublist_sums:list[np.ndarray] = list(executor.map(sum_sublist, sublists))
     
-    print(f'sublist_sums:{sublist_sums}')
     total_sum = np.sum(sublist_sums, axis=0)
 
     return total_sum
