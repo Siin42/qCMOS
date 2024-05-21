@@ -3,7 +3,6 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from PIL import Image
 import numpy as np
 import os
-from scipy.sparse import csr_matrix
 from functools import reduce
 import numpy as np
 from operator import add
@@ -11,19 +10,19 @@ import pickle
 from utils import get_tiff_list, configDict
 
 
-def read_image(file_path:str) -> csr_matrix:
+def read_image(file_path:str) -> np.ndarray:
     """
     worker of `Threading_read_images()`
     """
     img = Image.open(file_path)
     img_array = np.array(img)
-    return csr_matrix(img_array)
+    return img_array
 
-def worker(file_path:str) -> csr_matrix:
+def worker(file_path:str) -> np.ndarray:
     # Your function
     return read_image(file_path)
 
-def Threading_read_images(file_path:str, configs:configDict) -> list[csr_matrix]:
+def Threading_read_images(file_path:str, configs:configDict) -> list[np.ndarray]:
     """
     read images in parallel
     """
@@ -44,7 +43,7 @@ def Threading_read_images(file_path:str, configs:configDict) -> list[csr_matrix]
     return image_arrays
 
 # @timer_decorator(debugging)
-def read_all_images(tiff_path:str, configs:configDict) -> list[csr_matrix]:
+def read_all_images(tiff_path:str, configs:configDict) -> list[np.ndarray]:
     """
     Parameters:
         - `tiff_path`(str):
@@ -66,7 +65,7 @@ def read_all_images(tiff_path:str, configs:configDict) -> list[csr_matrix]:
     
     if os.path.exists(f'{tiff_path}\\image_arrays.pkl') and pickle_usage==True:
         with open(f'{tiff_path}\\image_arrays.pkl', 'rb') as f:
-            image_arrays:list[csr_matrix] = pickle.load(f)
+            image_arrays:list[np.ndarray] = pickle.load(f)
         if debugging==True:
             print(f'{tiff_path}\nLoaded image_arrays.pkl')
         
@@ -82,18 +81,18 @@ def read_all_images(tiff_path:str, configs:configDict) -> list[csr_matrix]:
 
 
 
-def exponentiate_RMS(img:csr_matrix, exponent:int) ->csr_matrix:
+def exponentiate_RMS(img:np.ndarray, exponent:int) ->np.ndarray:
     """
     Square on every elements of the matrix
     """
-    return img.power(exponent)
+    return np.power(img, exponent)
 
-def parallel_exponentiate_RMS(image_arrays_csr:list[csr_matrix], exponent:int) -> list[csr_matrix]:
+def parallel_exponentiate_RMS(image_arrays_arr:list[np.ndarray], exponent:int) -> list[np.ndarray]:
     """
     Square on every elements of the matrix, but in parallel
     """
     with ProcessPoolExecutor() as executor:
-        exponentiation = list(executor.map(exponentiate_RMS, image_arrays_csr, [exponent]*len(image_arrays_csr)))
+        exponentiation = list(executor.map(exponentiate_RMS, image_arrays_arr, [exponent]*len(image_arrays_arr)))
 
     return exponentiation
 
@@ -101,38 +100,32 @@ def parallel_exponentiate_RMS(image_arrays_csr:list[csr_matrix], exponent:int) -
 
 
 
-def sum_sublist(sublist:list[csr_matrix]) -> csr_matrix:
+def sum_sublist(sublist:list[np.ndarray]) -> np.ndarray:
     """
     Add intensity values for each pixel across the frames. 
     """
-    # return reduce(add, sublist)
-    print(f'sublist shapes: {[arr.shape for arr in sublist]}')
-    return reduce(add, sublist)
+    if isinstance(sublist[0], csr_matrix):
+        sublist = [item.toarray() for item in sublist]
+    result = np.sum(sublist, axis=0)
+    return result
 
-def parallel_sum(image_arrays_csr:list[csr_matrix]) -> csr_matrix:
+def parallel_sum(image_arrays_arr:list[np.ndarray]) -> np.ndarray:
     """
     divide the list into sublists and sum them in parallel. 
 
     - Generate a total sum for each pixel across the frames. 
     """
     num_splits = os.cpu_count()
-    sublists:list[csr_matrix] = np.array_split(image_arrays_csr, num_splits)
+    sublists:list[np.ndarray] = np.array_split(image_arrays_arr, num_splits)
     with ProcessPoolExecutor() as executor:
-        sublist_sums:list[csr_matrix] = list(executor.map(sum_sublist, sublists))
+        sublist_sums:list[np.ndarray] = list(executor.map(sum_sublist, sublists))
     
-    print(f'sublist_sums:{[subsum.todense() for subsum in sublist_sums]}')
     print(f'sublist_sums:{sublist_sums}')
-    print(f'type of sublist_sums[0]: {type(sublist_sums[0])}')
-
-    # total_sum:csr_matrix = reduce(add, sublist_sums)
-    total_sum:csr_matrix = reduce(add, sublist_sums)
-    # total_sum = sum_sublist(sublist_sums)
-
-    print(f'totalsum:{total_sum}')
+    total_sum = np.sum(sublist_sums, axis=0)
 
     return total_sum
 
-def frame_sum_sublist(sublist:list[csr_matrix]) -> list[int]:
+def frame_sum_sublist(sublist:list[np.ndarray]) -> list[int]:
     """
     add intensity values 
     
@@ -140,14 +133,14 @@ def frame_sum_sublist(sublist:list[csr_matrix]) -> list[int]:
     """
     return [np.sum(arr) for arr in sublist]
     
-def parallel_frame_sum(image_arrays_csr:list[csr_matrix]) -> list[int]:
+def parallel_frame_sum(image_arrays_arr:list[np.ndarray]) -> list[int]:
     """
     get the sum of intensity values in parallel
     
     - on the whole frame
     """
     num_splits = os.cpu_count()
-    sublists:list[csr_matrix] = np.array_split(image_arrays_csr, num_splits)
+    sublists:list[np.ndarray] = np.array_split(image_arrays_arr, num_splits)
     with ProcessPoolExecutor() as executor:
         sublist_frame_sums:list[list[int]] = list(executor.map(frame_sum_sublist, sublists))
 
